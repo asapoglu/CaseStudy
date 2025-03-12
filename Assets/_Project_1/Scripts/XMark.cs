@@ -2,53 +2,56 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class XMark : MonoBehaviour
+namespace Abdurrahman.Project_1
 {
-    public float targetScale = 0.8f;
-    
-    void Start()
+    public class XMark : MonoBehaviour
     {
-        transform.localScale = Vector3.zero;
-        StartCoroutine(ScaleUp());
-    }
-    
-    IEnumerator ScaleUp()
-    {
-        float duration = 0.2f;
-        float elapsed = 0;
-        Vector3 targetScaleVector = new Vector3(targetScale, targetScale, 1f);
-        
-        SpriteRenderer renderer = GetComponent<SpriteRenderer>();
-        if (renderer != null)
+        public float targetScale = 0.8f;
+
+        void Start()
         {
-            Color startColor = renderer.color;
-            startColor.a = 0f;
-            renderer.color = startColor;
+            transform.localScale = Vector3.zero;
+            StartCoroutine(ScaleUp());
         }
-        
-        while (elapsed < duration)
+
+        IEnumerator ScaleUp()
         {
-            elapsed += Time.deltaTime;
-            float t = elapsed / duration;
-            transform.localScale = Vector3.Lerp(Vector3.zero, targetScaleVector, t);
-            
+            float duration = 0.2f;
+            float elapsed = 0;
+            Vector3 targetScaleVector = new Vector3(targetScale, targetScale, 1f);
+
+            SpriteRenderer renderer = GetComponent<SpriteRenderer>();
             if (renderer != null)
             {
-                Color currentColor = renderer.color;
-                currentColor.a = t;
-                renderer.color = currentColor;
+                Color startColor = renderer.color;
+                startColor.a = 0f;
+                renderer.color = startColor;
             }
-            
-            yield return null;
-        }
-        
-        transform.localScale = targetScaleVector;
-        
-        if (renderer != null)
-        {
-            Color finalColor = renderer.color;
-            finalColor.a = 1f;
-            renderer.color = finalColor;
+
+            while (elapsed < duration)
+            {
+                elapsed += Time.deltaTime;
+                float t = elapsed / duration;
+                transform.localScale = Vector3.Lerp(Vector3.zero, targetScaleVector, t);
+
+                if (renderer != null)
+                {
+                    Color currentColor = renderer.color;
+                    currentColor.a = t;
+                    renderer.color = currentColor;
+                }
+
+                yield return null;
+            }
+
+            transform.localScale = targetScaleVector;
+
+            if (renderer != null)
+            {
+                Color finalColor = renderer.color;
+                finalColor.a = 1f;
+                renderer.color = finalColor;
+            }
         }
     }
 }
