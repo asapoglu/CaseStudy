@@ -4,9 +4,10 @@ using UnityEngine;
 
 public class XMark : MonoBehaviour
 {
+    public float targetScale = 0.8f;
+    
     void Start()
     {
-        // X işareti oluşturulduğunda animasyon eklenebilir
         transform.localScale = Vector3.zero;
         StartCoroutine(ScaleUp());
     }
@@ -15,16 +16,39 @@ public class XMark : MonoBehaviour
     {
         float duration = 0.2f;
         float elapsed = 0;
-        Vector3 targetScale = new Vector3(0.8f, 0.8f, 0.8f);
+        Vector3 targetScaleVector = new Vector3(targetScale, targetScale, 1f);
+        
+        SpriteRenderer renderer = GetComponent<SpriteRenderer>();
+        if (renderer != null)
+        {
+            Color startColor = renderer.color;
+            startColor.a = 0f;
+            renderer.color = startColor;
+        }
         
         while (elapsed < duration)
         {
             elapsed += Time.deltaTime;
             float t = elapsed / duration;
-            transform.localScale = Vector3.Lerp(Vector3.zero, targetScale, t);
+            transform.localScale = Vector3.Lerp(Vector3.zero, targetScaleVector, t);
+            
+            if (renderer != null)
+            {
+                Color currentColor = renderer.color;
+                currentColor.a = t;
+                renderer.color = currentColor;
+            }
+            
             yield return null;
         }
         
-        transform.localScale = targetScale;
+        transform.localScale = targetScaleVector;
+        
+        if (renderer != null)
+        {
+            Color finalColor = renderer.color;
+            finalColor.a = 1f;
+            renderer.color = finalColor;
+        }
     }
 }

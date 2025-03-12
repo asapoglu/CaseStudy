@@ -4,14 +4,13 @@ using UnityEngine;
 
 public class Cell : MonoBehaviour
 {
-    public GameObject xMarkPrefab; // X işareti prefab'ı
-    
-    private int x, y; // Grid koordinatları
+    public GameObject xMarkPrefab; 
+
+    private int x, y; 
     private GridManager gridManager;
     private bool isMarked = false;
     private GameObject xMark = null;
-    
-    // Hücreyi başlat
+
     public void Initialize(int xPos, int yPos, GridManager manager)
     {
         x = xPos;
@@ -19,19 +18,19 @@ public class Cell : MonoBehaviour
         gridManager = manager;
         isMarked = false;
     }
-    
+
     // Tıklama işlemi için
     void OnMouseDown()
     {
         if (!isMarked)
         {
             MarkCell();
-            
+
             // Grid manager'a bildir
             gridManager.OnCellMarked(x, y);
         }
     }
-    
+
     // X işareti koy
     void MarkCell()
     {
@@ -39,12 +38,11 @@ public class Cell : MonoBehaviour
         {
             xMark = Instantiate(xMarkPrefab, transform.position, Quaternion.identity);
             xMark.transform.SetParent(transform);
-            xMark.transform.localScale = 2* new Vector3(0.8f, 0.8f, 0.8f); // X işareti boyutu
+            xMark.transform.localScale = new Vector3(0.8f, 0.8f, 0.8f); // X işareti boyutu
         }
-        
         isMarked = true;
     }
-    
+
     // X işaretini kaldır
     public void RemoveMark()
     {
@@ -52,10 +50,10 @@ public class Cell : MonoBehaviour
         {
             Destroy(xMark);
         }
-        
+
         isMarked = false;
     }
-    
+
     // Hücrenin işaretli olup olmadığını kontrol et
     public bool IsMarked()
     {
