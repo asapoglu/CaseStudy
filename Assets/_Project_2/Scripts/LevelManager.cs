@@ -29,22 +29,12 @@ namespace Abdurrahman.Project_2.Core.Managers
         
         [Header("Seviye Parametreleri")]
         [SerializeField] private int _maxLevel = 30;
-        [SerializeField] private GameObject _finishLinePrefab;
         
         private int _currentLevel;
-        private float _finishLength;
         private LevelParameters _currentParameters;
         
         public int CurrentLevel => _currentLevel;
-        
-        private void Awake()
-        {
-            // Bitiş çizgisinin boyutunu hesapla
-            if (_finishLinePrefab != null && _finishLinePrefab.TryGetComponent<MeshRenderer>(out var renderer))
-            {
-                _finishLength = renderer.bounds.extents.z;
-            }
-        }
+    
         
         [Inject]
         private void Initialize()
@@ -94,7 +84,7 @@ namespace Abdurrahman.Project_2.Core.Managers
             
             // Hedef pozisyonu hesapla
             _currentParameters.TargetPosition = (_currentParameters.Length * _currentParameters.PieceCount) + 
-                                               (_currentParameters.Length / 2f) + _finishLength;
+                                               (_currentParameters.Length / 2f);
             
             // Seviye değişikliği ve hazır sinyallerini gönder
             _signalBus.Fire(new LevelNumberChangedSignal(_currentLevel));

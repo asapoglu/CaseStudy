@@ -77,6 +77,7 @@ namespace Abdurrahman.Project_2.Core.Managers
         {
             _pieceCount = 0;
             _parameters = signal.Parameters;
+            _parameters.TargetPosition = _parameters.TargetPosition + _finishLength;
 
             // Önceki seviyeden kalan platformlar varsa
             if (_stackParent.childCount > 1)
