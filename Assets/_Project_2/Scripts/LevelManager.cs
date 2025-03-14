@@ -1,4 +1,6 @@
-// Seviye Yöneticisi
+// Seviye Yöneticisi için güncellemeler
+// Next Level işlemi için gerekli ayarlamalar
+
 namespace Abdurrahman.Project_2.Core.Managers
 {
     using Abdurrahman.Project_2.Core.Interfaces;
@@ -29,6 +31,7 @@ namespace Abdurrahman.Project_2.Core.Managers
         
         [Header("Seviye Parametreleri")]
         [SerializeField] private int _maxLevel = 30;
+        [SerializeField] private bool _resetLevelOnGameRestart = false; // Oyun tamamen yeniden başlatıldığında seviyeyi de sıfırla
         
         private int _currentLevel;
         private LevelParameters _currentParameters;
@@ -41,12 +44,14 @@ namespace Abdurrahman.Project_2.Core.Managers
         {
             _signalBus.Subscribe<ContinueSignal>(OnContinue);
             _signalBus.Subscribe<GameFailSignal>(OnGameFail);
+            _signalBus.Subscribe<ReplaySignal>(OnReplay); // Replay sinyali için abonelik ekle
         }
         
         private void OnDestroy()
         {
             _signalBus.TryUnsubscribe<ContinueSignal>(OnContinue);
             _signalBus.TryUnsubscribe<GameFailSignal>(OnGameFail);
+            _signalBus.TryUnsubscribe<ReplaySignal>(OnReplay);
         }
         
         private void Start()
@@ -60,6 +65,7 @@ namespace Abdurrahman.Project_2.Core.Managers
         {
             // Kayıtlı seviye numarasını yükle, yoksa 1 ata
             _currentLevel = PlayerPrefs.GetInt("Level", 1);
+            Debug.Log("LevelManager - Seviye yüklendi: " + _currentLevel);
         }
         
         public void SaveLevelNumber()
@@ -68,6 +74,7 @@ namespace Abdurrahman.Project_2.Core.Managers
             _currentLevel++;
             PlayerPrefs.SetInt("Level", _currentLevel);
             PlayerPrefs.Save();
+            Debug.Log("LevelManager - Seviye kaydedildi: " + _currentLevel);
         }
         
         private void OnContinue()
@@ -77,8 +84,27 @@ namespace Abdurrahman.Project_2.Core.Managers
             LoadLevel();
         }
         
+        // Replay sinyali için yeni metod
+        private void OnReplay()
+        {
+            Debug.Log("LevelManager - Replay sinyali alındı");
+            
+            // Eğer ayarlandıysa, replay durumunda seviyeyi sıfırla
+            if (_resetLevelOnGameRestart)
+            {
+                _currentLevel = 1;
+                PlayerPrefs.SetInt("Level", _currentLevel);
+                PlayerPrefs.Save();
+            }
+            
+            // Mevcut seviyeyi yeniden yükle (seviye numarası değişmedi)
+            LoadLevel();
+        }
+        
         public void LoadLevel()
         {
+            Debug.Log("LevelManager - Seviye yükleniyor: " + _currentLevel);
+            
             // Seviye zorluğunu hesapla ve seviye parametrelerini oluştur
             _currentParameters = CalculateDifficulty();
             
@@ -121,6 +147,18 @@ namespace Abdurrahman.Project_2.Core.Managers
         private void OnGameFail()
         {
             // Oyun başarısız olduğunda herhangi bir işlem yok
+        }
+        
+        // Oyunu tamamen sıfırlamak için (dışarıdan çağrılabilir)
+        public void ResetGameCompletely()
+        {
+            _currentLevel = 1;
+            PlayerPrefs.SetInt("Level", _currentLevel);
+            PlayerPrefs.Save();
+            
+            Debug.Log("LevelManager - Oyun tamamen sıfırlandı, seviye: " + _currentLevel);
+            
+            LoadLevel();
         }
     }
 }

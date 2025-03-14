@@ -7,6 +7,7 @@ namespace Abdurrahman.Project_2.Core.Managers
     using Zenject;
     using System.Collections;
     using Cinemachine;
+    
     public class CameraController : MonoBehaviour, ICameraController
     {
         [Inject] private SignalBus _signalBus;
@@ -35,32 +36,48 @@ namespace Abdurrahman.Project_2.Core.Managers
         {
             // Sinyallere abone ol
             _signalBus.Subscribe<GameSuccessSignal>(OnSuccess);
-            _signalBus.Subscribe<ContinueSignal>(OnContinueNewLevel);
+            _signalBus.Subscribe<ReplaySignal>(OnReplay);
+            
+            // Yeni sinyal abonelikleri ekle
+            _signalBus.Subscribe<LevelReadySignal>(OnLevelReady);
         }
         
         private void OnDestroy()
         {
             // Sinyallerden çık
             _signalBus.TryUnsubscribe<GameSuccessSignal>(OnSuccess);
-            _signalBus.TryUnsubscribe<ContinueSignal>(OnContinueNewLevel);
+            _signalBus.TryUnsubscribe<ReplaySignal>(OnReplay);
+            _signalBus.TryUnsubscribe<LevelReadySignal>(OnLevelReady);
         }
         
         private void OnSuccess()
         {
+            Debug.Log("CameraController - Success sinyali alındı, başarı kamerasına geçiliyor");
             // Oyun başarılı olduğunda başarı kamerasına geç ve rotasyonu başlat
             SwitchToSuccessCamera();
             StartCameraRotation();
         }
         
-        private void OnContinueNewLevel()
+        private void OnReplay()
         {
-            // Yeni seviyeye geçildiğinde oyun kamerasına geri dön ve rotasyonu durdur
+            Debug.Log("CameraController - Replay sinyali alındı, oyun kamerasına geçiliyor");
+            // Yeniden oynatma talebi olduğunda oyun kamerasına geç
+            SwitchToPlayCamera();
+            StopCameraRotation();
+        }
+        
+        private void OnLevelReady(LevelReadySignal signal)
+        {
+            Debug.Log("CameraController - Level hazır sinyali alındı, oyun kamerasına geçiliyor");
+            // Yeni seviye yüklendiğinde oyun kamerasına geç
             SwitchToPlayCamera();
             StopCameraRotation();
         }
         
         public void SwitchToPlayCamera()
         {
+            Debug.Log("CameraController - Oyun kamerasına geçiliyor");
+            
             // Oyun kamerasını etkinleştir
             if (_playCamera != null)
             {
@@ -76,6 +93,8 @@ namespace Abdurrahman.Project_2.Core.Managers
         
         public void SwitchToSuccessCamera()
         {
+            Debug.Log("CameraController - Başarı kamerasına geçiliyor");
+            
             // Oyun kamerasını devre dışı bırak
             if (_playCamera != null)
             {
@@ -91,6 +110,8 @@ namespace Abdurrahman.Project_2.Core.Managers
         
         public void StartCameraRotation()
         {
+            Debug.Log("CameraController - Kamera rotasyonu başlatılıyor");
+            
             // Eğer Orbital Transposer bileşeni yoksa işlem yapma
             if (_orbitalTransposer == null) return;
             
@@ -100,6 +121,8 @@ namespace Abdurrahman.Project_2.Core.Managers
         
         public void StopCameraRotation()
         {
+            Debug.Log("CameraController - Kamera rotasyonu durduruluyor");
+            
             // Rotasyonu durdur
             _rotate = false;
         }

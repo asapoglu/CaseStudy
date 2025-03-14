@@ -2,7 +2,6 @@
 namespace Abdurrahman.Project_2.Core.Managers
 {
     using Abdurrahman.Project_2.Core.Interfaces;
-    using Abdurrahman.Project_2.Core.Models;
     using Abdurrahman.Project_2.Core.Signals;
     using UnityEngine;
     using Zenject;
@@ -14,21 +13,18 @@ namespace Abdurrahman.Project_2.Core.Managers
         [Inject] private IGameStateManager _gameStateManager;
         
         [Header("UI Panelleri")]
-        [SerializeField] private GameObject _loadingPanel;
-        [SerializeField] private GameObject _startButton;
-        [SerializeField] private GameObject _continueButton;
-        [SerializeField] private GameObject _failPanel;
+        [SerializeField] private GameObject _startPanel;    // Oyun başlangıç paneli
+        [SerializeField] private GameObject _inGamePanel;   // Oyun sırasında gösterilen panel
+        [SerializeField] private GameObject _winPanel;      // Başarılı olunca gösterilen panel
+        [SerializeField] private GameObject _failPanel;     // Başarısız olunca gösterilen panel
         
         [Header("UI Elemanları")]
         [SerializeField] private TextMeshProUGUI _levelNumberText;
         
         private void Awake()
         {
-            // Başlangıçta yükleme panelini göster
-            if (_loadingPanel != null)
-            {
-                _loadingPanel.SetActive(true);
-            }
+            // Başlangıçta sadece start panel göster
+            ShowOnlyPanel(_startPanel);
         }
         
         [Inject]
@@ -37,11 +33,29 @@ namespace Abdurrahman.Project_2.Core.Managers
             // Sinyallere abone ol
             _signalBus.Subscribe<LevelReadySignal>(OnLevelGenerated);
             _signalBus.Subscribe<GameFailSignal>(OnFail);
-            _signalBus.Subscribe<LevelNumberChangedSignal>(ShowLevel);
-            _signalBus.Subscribe<GameStartSignal>(OnGameStart);
             _signalBus.Subscribe<GameSuccessSignal>(OnSuccess);
-            _signalBus.Subscribe<ContinueSignal>(OnContinueNewLevel);
-            _signalBus.Subscribe<ReplaySignal>(OnGameReplay);
+            _signalBus.Subscribe<GameStartSignal>(OnGameStart);
+            _signalBus.Subscribe<LevelNumberChangedSignal>(ShowLevel);
+            _signalBus.Subscribe<ReplaySignal>(OnReplay);
+            
+            Debug.Log("UIManager başlatıldı - Panel referansları kontrol ediliyor");
+            CheckPanelReferences();
+        }
+        
+        // Panel referanslarını kontrol et
+        private void CheckPanelReferences()
+        {
+            if (_startPanel == null)
+                Debug.LogWarning("Start panel referansı atanmamış!");
+            
+            if (_inGamePanel == null)
+                Debug.LogWarning("InGame panel referansı atanmamış!");
+            
+            if (_winPanel == null)
+                Debug.LogWarning("Win panel referansı atanmamış!");
+            
+            if (_failPanel == null)
+                Debug.LogWarning("Fail panel referansı atanmamış!");
         }
         
         private void OnDestroy()
@@ -49,101 +63,95 @@ namespace Abdurrahman.Project_2.Core.Managers
             // Sinyallerden çık
             _signalBus.TryUnsubscribe<LevelReadySignal>(OnLevelGenerated);
             _signalBus.TryUnsubscribe<GameFailSignal>(OnFail);
-            _signalBus.TryUnsubscribe<LevelNumberChangedSignal>(ShowLevel);
-            _signalBus.TryUnsubscribe<GameStartSignal>(OnGameStart);
             _signalBus.TryUnsubscribe<GameSuccessSignal>(OnSuccess);
-            _signalBus.TryUnsubscribe<ContinueSignal>(OnContinueNewLevel);
-            _signalBus.TryUnsubscribe<ReplaySignal>(OnGameReplay);
+            _signalBus.TryUnsubscribe<GameStartSignal>(OnGameStart);
+            _signalBus.TryUnsubscribe<LevelNumberChangedSignal>(ShowLevel);
+            _signalBus.TryUnsubscribe<ReplaySignal>(OnReplay);
         }
         
-        private void OnGameStart()
-        {
-            // Oyun başladığında başlat butonunu gizle
-            if (_startButton != null)
-            {
-                _startButton.SetActive(false);
-            }
-        }
-        
-        private void OnGameReplay()
-        {
-            // Oyun yeniden başladığında başarısız panelini gizle ve başlat butonunu göster
-            if (_failPanel != null)
-            {
-                _failPanel.SetActive(false);
-            }
-            
-            if (_startButton != null)
-            {
-                _startButton.SetActive(true);
-            }
-        }
-        
+        // Seviye hazır olduğunda
         private void OnLevelGenerated(LevelReadySignal signal)
         {
-            // Seviye oluşturulduğunda yükleme panelini gizle ve başlat butonunu göster
-            if (_loadingPanel != null)
-            {
-                _loadingPanel.SetActive(false);
-            }
+            Debug.Log("UIManager - Seviye hazır, UI güncelleniyor");
             
-            if (_startButton != null)
-            {
-                _startButton.SetActive(true);
-            }
+            // Seviye yüklendiğinde Start panelini göster
+            ShowOnlyPanel(_startPanel);
         }
         
+        // Oyun başladığında
+        private void OnGameStart()
+        {
+            Debug.Log("UIManager - Oyun başladı, InGame panel gösteriliyor");
+            ShowOnlyPanel(_inGamePanel);
+        }
+        
+        // Oyun başarısız olduğunda
         private void OnFail()
         {
-            // Oyun başarısız olduğunda başarısız panelini göster
-            if (_failPanel != null)
-            {
-                _failPanel.SetActive(true);
-            }
+            Debug.Log("UIManager - Oyun başarısız oldu, Fail panel gösteriliyor");
+            ShowOnlyPanel(_failPanel);
         }
         
-        private void ShowLevel(LevelNumberChangedSignal signal)
-        {
-            // Seviye numarasını göster
-            if (_levelNumberText != null)
-            {
-                _levelNumberText.text = "Level " + signal.LevelNumber;
-            }
-        }
-        
+        // Oyun başarılı olduğunda
         private void OnSuccess()
         {
-            // Oyun başarılı olduğunda devam butonunu göster
-            if (_continueButton != null)
-            {
-                _continueButton.SetActive(true);
-            }
+            Debug.Log("UIManager - Oyun başarılı oldu, Win panel gösteriliyor");
+            ShowOnlyPanel(_winPanel);
         }
         
-        private void OnContinueNewLevel()
+        // Replay sinyali alındığında
+        private void OnReplay()
         {
-            // Yeni seviyeye geçildiğinde yükleme panelini göster ve devam butonunu gizle
-            if (_loadingPanel != null)
-            {
-                _loadingPanel.SetActive(true);
-            }
+            Debug.Log("UIManager - Replay sinyali alındı, Start panel gösteriliyor");
+            ShowOnlyPanel(_startPanel);
+        }
+        
+        // Seviye numarasını güncelle
+        private void ShowLevel(LevelNumberChangedSignal signal)
+        {
+            if (_levelNumberText != null)
+                _levelNumberText.text = "Level " + signal.LevelNumber;
+            else
+                Debug.LogWarning("Level numarası text referansı atanmamış!");
+        }
+        
+        // Sadece belirtilen paneli göster, diğerlerini gizle
+        private void ShowOnlyPanel(GameObject panelToShow)
+        {
+            Debug.Log("UIManager - Panel değiştiriliyor: " + (panelToShow != null ? panelToShow.name : "null"));
             
-            if (_continueButton != null)
-            {
-                _continueButton.SetActive(false);
-            }
+            if (_startPanel != null)
+                _startPanel.SetActive(panelToShow == _startPanel);
+            
+            if (_inGamePanel != null)
+                _inGamePanel.SetActive(panelToShow == _inGamePanel);
+            
+            if (_winPanel != null)
+                _winPanel.SetActive(panelToShow == _winPanel);
+            
+            if (_failPanel != null)
+                _failPanel.SetActive(panelToShow == _failPanel);
         }
         
-        // Başlat butonu için çağrılacak metod
-        public void OnStartButtonClick()
+        // Start Panel butonuna tıklandığında çağrılacak metod
+        public void OnStartButtonClicked()
         {
+            Debug.Log("UIManager - Start butonu tıklandı");
             _gameStateManager.StartGame();
         }
         
-        // Devam butonu için çağrılacak metod
-        public void OnContinueButtonClick()
+        // Win Panel içindeki Next Level butonuna tıklandığında çağrılacak metod
+        public void OnNextLevelButtonClicked()
         {
-            _signalBus.Fire(new ContinueSignal());
+            Debug.Log("UIManager - Next Level butonu tıklandı");
+            _gameStateManager.NextLevel();
+        }
+        
+        // Fail Panel içindeki Replay butonuna tıklandığında çağrılacak metod
+        public void OnReplayButtonClicked()
+        {
+            Debug.Log("UIManager - Replay butonu tıklandı");
+            _gameStateManager.ReplayGame();
         }
     }
 }

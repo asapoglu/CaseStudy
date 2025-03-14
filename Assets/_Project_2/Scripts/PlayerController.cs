@@ -55,46 +55,62 @@ namespace Abdurrahman.Project_2.Core.Managers
         [Inject]
         private void Initialize()
         {
-            // Sinyallere abone ol
+            // Mevcut sinyaller
             _signalBus.Subscribe<GameStartSignal>(OnGameStart);
             _signalBus.Subscribe<LevelReadySignal>(OnLevelReady);
-            _signalBus.Subscribe<ContinueSignal>(OnNewLevelRequest);
-            _signalBus.Subscribe<ReplaySignal>(OnGameReplay);
             _signalBus.Subscribe<PathChangedSignal>(OnPathChange);
+            _signalBus.Subscribe<ReplaySignal>(OnGameReplay);
         }
 
         private void OnDestroy()
         {
-            // Sinyallerden çık
+            // Mevcut sinyal aboneliklerinin çıkışı
             _signalBus.TryUnsubscribe<GameStartSignal>(OnGameStart);
             _signalBus.TryUnsubscribe<LevelReadySignal>(OnLevelReady);
-            _signalBus.TryUnsubscribe<ContinueSignal>(OnNewLevelRequest);
-            _signalBus.TryUnsubscribe<ReplaySignal>(OnGameReplay);
             _signalBus.TryUnsubscribe<PathChangedSignal>(OnPathChange);
+            _signalBus.TryUnsubscribe<ReplaySignal>(OnGameReplay);
         }
 
         public void ResetPlayerPosition()
         {
+            Debug.Log("PlayerController - Oyuncu pozisyonu sıfırlanıyor");
+
+            // Tüm Tween işlemlerini durdur
+            _playerTransform.DOKill();
+
             // Oyuncuyu başlangıç pozisyonuna sıfırla
             _playerTransform.localPosition = Vector3.zero;
-            _rigidbody.isKinematic = true;
-            _rigidbody.useGravity = false;
+
+            // Fiziği sıfırla
+            if (_rigidbody != null)
+            {
+                _rigidbody.velocity = Vector3.zero;
+                _rigidbody.angularVelocity = Vector3.zero;
+                _rigidbody.isKinematic = true;
+                _rigidbody.useGravity = false;
+            }
 
             // Animasyonları sıfırla
             SetPlayerAnimation("Idle");
 
-            // Tüm hareketleri durdur
-            _playerTransform.DOKill();
+            // Koşma durumunu devre dışı bırak
+            _isRunning = false;
+
+            // Tüm coroutine'leri durdur
+            StopAllCoroutines();
         }
 
         private void OnLevelReady(LevelReadySignal signal)
         {
+            Debug.Log("PlayerController - Seviye hazır sinyali alındı");
+
             // Seviye parametrelerini kaydet
             _parameters = signal.Parameters;
 
             // Oyuncuyu sıfırla
             ResetPlayerPosition();
         }
+
 
         private void OnPathChange(PathChangedSignal signal)
         {
@@ -105,6 +121,8 @@ namespace Abdurrahman.Project_2.Core.Managers
 
         private void OnGameReplay()
         {
+            Debug.Log("PlayerController - Oyun yeniden başlatılıyor");
+
             // Oyun yeniden başladığında oyuncuyu sıfırla
             ResetPlayerPosition();
         }
@@ -154,7 +172,13 @@ namespace Abdurrahman.Project_2.Core.Managers
         private void FailJump()
         {
             // Eğer zaten koşmuyorsa işlem yapma
-            if (!_isRunning) return;
+            if (!_isRunning)
+            {
+                Debug.Log("FailJump çağrıldı fakat oyuncu zaten koşmuyor");
+                return;
+            }
+
+            Debug.Log("FailJump başlatıldı");
 
             // Tüm coroutine'leri durdur ve koşmayı devre dışı bırak
             StopAllCoroutines();
@@ -164,8 +188,12 @@ namespace Abdurrahman.Project_2.Core.Managers
             _playerTransform.DOKill();
 
             // Fiziği etkinleştir ve başarısız animasyonunu başlat
-            _rigidbody.isKinematic = false;
-            _rigidbody.useGravity = true;
+            if (_rigidbody != null)
+            {
+                _rigidbody.isKinematic = false;
+                _rigidbody.useGravity = true;
+            }
+
             SetPlayerAnimation("Fail");
 
             // Düşüş hızını yavaşlat ve başarısız sinyalini gönder

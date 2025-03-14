@@ -5,7 +5,6 @@ namespace Abdurrahman.Project_2.Core.Managers
     using Abdurrahman.Project_2.Core.Signals;
     using UnityEngine;
     using Zenject;
-    using System.Collections;
     using DG.Tweening;
     
     public class GameStateManager : MonoBehaviour, IGameStateManager
@@ -13,41 +12,75 @@ namespace Abdurrahman.Project_2.Core.Managers
         [Inject] private SignalBus _signalBus;
         [Inject] private ILevelManager _levelManager;
         
-        [SerializeField] private float _replayWaitDuration = 2f;
+        // Oyun durumları için enum
+        public enum GameState
+        {
+            NotStarted,  // Oyun henüz başlamadı
+            Playing,     // Oyun aktif olarak oynanıyor
+            Success,     // Oyun başarıyla tamamlandı
+            Failed       // Oyun başarısız oldu
+        }
         
-        private bool _isGameActive = false;
+        // Mevcut oyun durumu
+        private GameState _currentState = GameState.NotStarted;
+        
+        // Oyun durumunu dış dünyaya açmak için property
+        public GameState CurrentState => _currentState;
         
         [Inject]
         private void Initialize()
         {
-            // Sinyallere abone ol
-            _signalBus.Subscribe<GameFailSignal>(OnGameFail);
-            _signalBus.Subscribe<ContinueSignal>(NextLevel);
-            _signalBus.Subscribe<ReplaySignal>(ReplayGame);
+            Debug.Log("GameStateManager başlatıldı, başlangıç durumu: " + _currentState);
         }
         
         private void OnDestroy()
         {
-            // Sinyallerden çık
-            _signalBus.TryUnsubscribe<GameFailSignal>(OnGameFail);
-            _signalBus.TryUnsubscribe<ContinueSignal>(NextLevel);
-            _signalBus.TryUnsubscribe<ReplaySignal>(ReplayGame);
+            // Tüm DOTween işlemlerini temizle
+            DOTween.Kill(this);
         }
         
+        // Oyunu başlat
         public void StartGame()
         {
-            if (_isGameActive) return;
+            // Eğer oyun zaten başladıysa işlem yapma
+            if (_currentState == GameState.Playing)
+            {
+                Debug.LogWarning("Oyun zaten başlamış durumda!");
+                return;
+            }
             
-            _isGameActive = true;
+            Debug.Log("Oyun başlatılıyor. Önceki durum: " + _currentState);
+            
+            // Durumu güncelle
+            _currentState = GameState.Playing;
+            
+            // Oyunun başladığını bildiren sinyali gönder
             _signalBus.Fire(new GameStartSignal());
         }
         
+        // Oyunu bitir (başarılı veya başarısız)
         public void EndGame(bool isSuccess)
         {
-            if (!_isGameActive) return;
+            // Oyun zaten bitmiş durumdaysa tekrar işlem yapma
+            if (_currentState == GameState.Success || _currentState == GameState.Failed)
+            {
+                Debug.LogWarning("Oyun zaten sonlanmış durumda: " + _currentState);
+                return;
+            }
             
-            _isGameActive = false;
+            // Oyun oynama durumunda değilse uyarı ver
+            if (_currentState != GameState.Playing)
+            {
+                Debug.LogWarning("Oyun aktif değilken EndGame çağrıldı. Mevcut durum: " + _currentState);
+                return;
+            }
             
+            Debug.Log("Oyun sonlandırılıyor. Başarı durumu: " + isSuccess);
+            
+            // Durumu güncelle
+            _currentState = isSuccess ? GameState.Success : GameState.Failed;
+            
+            // Uygun sinyali gönder
             if (isSuccess)
             {
                 _signalBus.Fire(new GameSuccessSignal());
@@ -58,28 +91,29 @@ namespace Abdurrahman.Project_2.Core.Managers
             }
         }
         
+        // Bir sonraki seviyeye geç
         public void NextLevel()
         {
+            Debug.Log("Bir sonraki seviyeye geçiliyor. Mevcut durum: " + _currentState);
+            
+            // Mevcut seviyeyi kaydet ve yeni seviyeyi yükle
             _levelManager.SaveLevelNumber();
             _levelManager.LoadLevel();
-            _isGameActive = false;
+            
+            // Durumu başlangıç durumuna getir
+            _currentState = GameState.NotStarted;
         }
         
+        // Oyunu yeniden başlat
         public void ReplayGame()
         {
+            Debug.Log("Oyun yeniden başlatılıyor. Mevcut durum: " + _currentState);
+            
+            // Yeniden başlatma sinyalini gönder
             _signalBus.Fire(new ReplaySignal());
-            _isGameActive = false;
-        }
-        
-        private void OnGameFail()
-        {
-            // Oyun başarısız olduğunda kısa bir süre bekleyip yeniden oynat
-            DOVirtual.DelayedCall(_replayWaitDuration, TriggerReplay);
-        }
-        
-        private void TriggerReplay()
-        {
-            ReplayGame();
+            
+            // Durumu başlangıç durumuna getir
+            _currentState = GameState.NotStarted;
         }
     }
 }
