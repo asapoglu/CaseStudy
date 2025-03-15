@@ -50,10 +50,11 @@ namespace Abdurrahman.Project_2.Core.Managers
         {
             // Sinyallere abone ol
             _signalBus.Subscribe<LevelReadySignal>(OnLevelReady);
+
             _signalBus.Subscribe<GameStartSignal>(OnGameStart);
-            _signalBus.Subscribe<ReplaySignal>(OnGameReplay);
+            _signalBus.Subscribe<RestartLevelSignal>(OnGameReplay);
             _signalBus.Subscribe<GameFailSignal>(OnGameFail);
-            _signalBus.Subscribe<ContinueSignal>(OnContinue); // Next Level işlemi için
+            _signalBus.Subscribe<NextLevelSignal>(OnContinue); // Next Level işlemi için
         }
 
         private void OnDestroy()
@@ -61,9 +62,9 @@ namespace Abdurrahman.Project_2.Core.Managers
             // Sinyallerden çık
             _signalBus.TryUnsubscribe<LevelReadySignal>(OnLevelReady);
             _signalBus.TryUnsubscribe<GameStartSignal>(OnGameStart);
-            _signalBus.TryUnsubscribe<ReplaySignal>(OnGameReplay);
+            _signalBus.TryUnsubscribe<RestartLevelSignal>(OnGameReplay);
             _signalBus.TryUnsubscribe<GameFailSignal>(OnGameFail);
-            _signalBus.TryUnsubscribe<ContinueSignal>(OnContinue);
+            _signalBus.TryUnsubscribe<NextLevelSignal>(OnContinue);
         }
 
         private void Update()
@@ -78,7 +79,6 @@ namespace Abdurrahman.Project_2.Core.Managers
         }
         private void OnContinue()
         {
-            Debug.Log("PlatformManager - Continue sinyali alındı, yeni seviye için platformlar hazırlanıyor");
 
             // Mevcut tamamlanmış platformları tut
             KeepCompletedPlatforms();
@@ -88,7 +88,6 @@ namespace Abdurrahman.Project_2.Core.Managers
         }
         private void KeepCompletedPlatforms()
         {
-            Debug.Log("PlatformManager - Tamamlanmış platformlar saklanıyor");
 
             // Mevcut oyun alanını tut ve Z pozisyonunu kaydet
             if (_stackParent.childCount > 0)
@@ -121,13 +120,11 @@ namespace Abdurrahman.Project_2.Core.Managers
                     float platformLength = lastPlatform.localScale.z;
                     _completedPlatformsOffset = maxZ + platformLength;
 
-                    Debug.Log("Son platformun Z pozisyonu: " + maxZ + ", Sonraki seviye başlangıç offseti: " + _completedPlatformsOffset);
                 }
             }
         }
         private void PrepareNewLevelPlatforms()
         {
-            Debug.Log("PlatformManager - Yeni seviye için platformlar hazırlanıyor");
 
             // Hiçbir mevcut platformu temizlemeyin - onları koruyun
             // Sadece potansiyel olarak aktif Tween'leri temizleyin
@@ -145,33 +142,61 @@ namespace Abdurrahman.Project_2.Core.Managers
             _pieceCount = 0;
             _parameters = signal.Parameters;
             _parameters.TargetPosition = _parameters.TargetPosition + _finishLength;
-
-            // İlk kez oynanıyorsa
-            if (_stackParent.childCount == 0)
+            if (_parameters.KeepCompletedPlatforms)
             {
-                Debug.Log("PlatformManager - İlk seviye oluşturuluyor");
-                _currentPiece = CreateStartingPiece(0);
-                CreateFinishLine();
-            }
-            else // Devam eden oyun
-            {
-                Debug.Log("PlatformManager - Devam eden seviye oluşturuluyor, offset: " + _completedPlatformsOffset);
-                
-                // Tamamlanan platformlardan sonra yeni başlangıç platformu oluştur
-                _currentPiece = CreateStartingPiece(_completedPlatformsOffset / _parameters.Length);
-                
-                // Yeni bitiş çizgisini tamamlanan platformlardan sonra oluştur
+                KeepPreviousPlatforms();
+                _currentPiece = CreateStartingPiece();
                 CreateFinishLineWithOffset();
+                Debug.Log("KeepCompletedPlatforms");
             }
+            else
+            {
+                _currentPiece = CreateStartingPiece();
+                CreateFinishLine();
+                Debug.Log("DontKeepCompletedPlatforms");
+            }
+        }
+
+        private void KeepPreviousPlatforms()
+        {
+            int childCount = _previousStackParent.childCount;
+            if (childCount > 0)
+            {   
+                for (int i = childCount - 1; i >= 0; i--)
+                {
+                    Destroy(_previousStackParent.GetChild(i).gameObject);
+                }
+                _previousStackParent.localPosition = Vector3.zero;
+            }
+
+            childCount = _stackParent.childCount;
+
+            if (childCount == 0) return;
+
+            // Döngü için geçici değişkeni dışarda tanımla (GC optimize)
+            Transform child;
+
+            // Doğrudan taşı - liste kullanmadan
+            // Not: Geriye doğru iterasyon yapıyoruz, böylece çocuklar taşındıkça indeks problemi olmaz
+            for (int i = childCount - 1; i >= 0; i--)
+            {
+                child = _stackParent.GetChild(i);
+                child.SetParent(_previousStackParent, true);
+            }
+
+            // Arkaplan parçalarını uygun pozisyona taşı
+            var previousPos = _previousStackParent.localPosition;
+            var gap = _finishLength + _parameters.Length / 2f;
+            previousPos.z -= _parameters.TargetPosition + gap;
+            _previousStackParent.localPosition = previousPos;
         }
 
         private void CreateFinishLineWithOffset()
         {
-            Debug.Log("PlatformManager - Bitiş çizgisi offsetli oluşturuluyor");
-            
+
             // Bitiş çizgisini tamamlanan platformların sonundan itibaren oluştur
             float finishPosition = _completedPlatformsOffset + _parameters.TargetPosition;
-            
+
             _finishLine = Instantiate(_finishLinePrefab, new Vector3(0, 0, finishPosition),
                 Quaternion.identity, _stackParent);
         }
@@ -200,51 +225,49 @@ namespace Abdurrahman.Project_2.Core.Managers
 
         private void OnGameReplay()
         {
-            Debug.Log("PlatformManager - Oyun yeniden başlatılıyor");
-            
+
             // Girdiyi devre dışı bırak
             _inputEnabled = false;
-            
+
             // Tüm aktif Tween işlemlerini durdur
             if (_currentTween != null && _currentTween.IsActive())
             {
                 _currentTween.Kill();
                 _currentTween = null;
             }
-            
+
             // SADECE MEVCUT SEVİYE için eklenen platformları temizle
             // Önceki seviyelerin platformlarını KORUMALISINIZ
             ClearCurrentLevelPlatforms();
-            
+
             // Son tamamlanan seviyeden başlayarak yeniden başlat
-            _currentPiece = CreateStartingPiece(_completedPlatformsOffset / _parameters.Length);
+            _currentPiece = CreateStartingPiece();
             CreateFinishLineWithOffset();
-            
+
             // Parça sayacını sıfırla
             _pieceCount = 0;
         }
 
         private void ClearCurrentLevelPlatforms()
         {
-            Debug.Log("PlatformManager - Sadece mevcut seviyenin platformları temizleniyor");
-            
+
             // Tüm aktif DOTween işlemlerini durdur
             DOTween.Kill(_stackParent);
-            
+
             List<Transform> platformsToRemove = new List<Transform>();
-            
+
             // Mevcut seviyeye ait platformları bul (offset'ten sonra olanlar)
             for (int i = 0; i < _stackParent.childCount; i++)
             {
                 var child = _stackParent.GetChild(i);
-                
+
                 // Eğer platform offset'ten sonra oluşturulduysa (mevcut seviyeye aitse)
                 if (child.localPosition.z >= _completedPlatformsOffset - 0.1f) // Küçük bir tolerans ekle
                 {
                     platformsToRemove.Add(child);
                 }
             }
-            
+
             // Bulunan platformları sil
             foreach (var platform in platformsToRemove)
             {
@@ -253,7 +276,6 @@ namespace Abdurrahman.Project_2.Core.Managers
         }
         private void ClearAddedPlatforms()
         {
-            Debug.Log("PlatformManager - Eklenen platformlar temizleniyor");
 
             // Tüm aktif DOTween işlemlerini durdur
             DOTween.Kill(_stackParent);
@@ -293,18 +315,18 @@ namespace Abdurrahman.Project_2.Core.Managers
 
         private void OnGameStart()
         {
+            Debug.Log(this.GetType().Name + " - OnGameStart");
             // Oyun başladığında girdiyi etkinleştir ve mesafeyi belirle
             _inputEnabled = true;
             _spawnDistance = _parameters.Width;
             CreateNewPlatform();
         }
 
-        private Transform CreateStartingPiece(float offsetZ)
+        private Transform CreateStartingPiece()
         {
-            Debug.Log("PlatformManager - Başlangıç platformu offsetli oluşturuluyor: " + offsetZ);
-            
+
             var go = Instantiate(_platformPrefab, _stackParent).transform;
-            go.localPosition = new Vector3(0, _parameters.Height / -2f, _parameters.Length * offsetZ);
+            go.localPosition = new Vector3(0, _parameters.Height / -2f, 0);
             go.localScale = new Vector3(_parameters.Width, _parameters.Height, _parameters.Length);
 
             // Platform rengini ayarla
@@ -363,7 +385,6 @@ namespace Abdurrahman.Project_2.Core.Managers
 
         public void ClearAllPlatforms()
         {
-            Debug.Log("PlatformManager - Tüm platformlar temizleniyor");
 
             // Tüm aktif DOTween işlemlerini durdur
             DOTween.Kill(_stackParent);
@@ -484,18 +505,17 @@ namespace Abdurrahman.Project_2.Core.Managers
         }
         public void ResetGameCompletely()
         {
-            Debug.Log("PlatformManager - Oyun tamamen sıfırlanıyor");
-            
+
             // Tüm platformları temizle
             ClearAllPlatforms();
-            
+
             // Offset'i sıfırla
             _completedPlatformsOffset = 0f;
-            
+
             // Yeni başlangıç platformu oluştur
-            _currentPiece = CreateStartingPiece(0);
+            _currentPiece = CreateStartingPiece();
             CreateFinishLine();
-            
+
             // Parça sayacını sıfırla
             _pieceCount = 0;
         }

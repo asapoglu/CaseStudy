@@ -8,87 +8,91 @@ namespace Abdurrahman.Project_2.Core.Managers
     using Abdurrahman.Project_2.Core.Signals;
     using UnityEngine;
     using Zenject;
-    
+
     public class LevelManager : MonoBehaviour, ILevelManager
     {
         [Inject] private SignalBus _signalBus;
-        
+
         [Header("Platform Boyutları")]
         [SerializeField] private float _pieceWidth = 3f;
         [SerializeField] private float _pieceHeight = 1f;
         [SerializeField] private float _pieceLength = 3f;
         [SerializeField] private float _toleranceWidth = 0.25f;
-        
+
         [Header("Hız Parametreleri")]
         [SerializeField] private float _speedMin = 2f;
         [SerializeField] private float _speedMax = 5f;
         [SerializeField] private AnimationCurve _speedCurve;
-        
+
         [Header("Parça Sayısı Parametreleri")]
         [SerializeField] private int _pieceCountMin = 5;
         [SerializeField] private int _pieceCountMax = 15;
         [SerializeField] private AnimationCurve _pieceCountCurve;
-        
+
         [Header("Seviye Parametreleri")]
         [SerializeField] private int _maxLevel = 30;
         [SerializeField] private bool _resetLevelOnGameRestart = false; // Oyun tamamen yeniden başlatıldığında seviyeyi de sıfırla
-        
+
         private int _currentLevel;
         private LevelParameters _currentParameters;
-        
+
         public int CurrentLevel => _currentLevel;
-    
-        
+
+
         [Inject]
         private void Initialize()
         {
-            _signalBus.Subscribe<ContinueSignal>(OnContinue);
+            _signalBus.Subscribe<LoadLevelSignal>(LoadLevel);
+            _signalBus.Subscribe<NextLevelSignal>(OnContinue);
             _signalBus.Subscribe<GameFailSignal>(OnGameFail);
-            _signalBus.Subscribe<ReplaySignal>(OnReplay); // Replay sinyali için abonelik ekle
+            _signalBus.Subscribe<RestartLevelSignal>(OnReplay);
         }
-        
+
         private void OnDestroy()
         {
-            _signalBus.TryUnsubscribe<ContinueSignal>(OnContinue);
+            _signalBus.TryUnsubscribe<LoadLevelSignal>(LoadLevel);
+            _signalBus.TryUnsubscribe<NextLevelSignal>(OnContinue);
             _signalBus.TryUnsubscribe<GameFailSignal>(OnGameFail);
-            _signalBus.TryUnsubscribe<ReplaySignal>(OnReplay);
+            _signalBus.TryUnsubscribe<RestartLevelSignal>(OnReplay);
         }
-        
-        private void Start()
+
+        public void LoadLevel(LoadLevelSignal signal)
         {
-            // Oyun başladığında seviye numarasını yükle ve seviyeyi oluştur
-            LoadLevelNumber();
-            LoadLevel();
-        }
-        
-        public void LoadLevelNumber()
-        {
-            // Kayıtlı seviye numarasını yükle, yoksa 1 ata
+            bool _keepPreviousPlatform = signal.KeepPreviousPlatform;
+
             _currentLevel = PlayerPrefs.GetInt("Level", 1);
-            Debug.Log("LevelManager - Seviye yüklendi: " + _currentLevel);
+            // Seviye zorluğunu hesapla ve seviye parametrelerini oluştur
+            _currentParameters = CalculateDifficulty();
+
+            // Hedef pozisyonu hesapla
+            _currentParameters.TargetPosition = (_currentParameters.Length * _currentParameters.PieceCount) +
+                                               (_currentParameters.Length / 2f);
+
+            _currentParameters.KeepCompletedPlatforms = _keepPreviousPlatform;
+            // Seviye değişikliği ve hazır sinyallerini gönder
+            _signalBus.Fire(new LevelNumberChangedSignal(_currentLevel));
+            _signalBus.Fire(new LevelReadySignal(_currentParameters));
         }
-        
+
         public void SaveLevelNumber()
         {
             // Seviye numarasını bir artır ve kaydet
             _currentLevel++;
             PlayerPrefs.SetInt("Level", _currentLevel);
             PlayerPrefs.Save();
-            Debug.Log("LevelManager - Seviye kaydedildi: " + _currentLevel);
         }
-        
+
         private void OnContinue()
         {
             // Devam sinyali alındığında bir sonraki seviyeye geç
             SaveLevelNumber();
-            LoadLevel();
+            // LoadLevel();
         }
-        
+
         // Replay sinyali için yeni metod
         private void OnReplay()
         {
-            Debug.Log("LevelManager - Replay sinyali alındı");
-            
+
             // Eğer ayarlandıysa, replay durumunda seviyeyi sıfırla
             if (_resetLevelOnGameRestart)
             {
@@ -96,41 +100,27 @@ namespace Abdurrahman.Project_2.Core.Managers
                 PlayerPrefs.SetInt("Level", _currentLevel);
                 PlayerPrefs.Save();
             }
-            
+
             // Mevcut seviyeyi yeniden yükle (seviye numarası değişmedi)
-            LoadLevel();
+            // LoadLevel();
         }
-        
-        public void LoadLevel()
-        {
-            Debug.Log("LevelManager - Seviye yükleniyor: " + _currentLevel);
-            
-            // Seviye zorluğunu hesapla ve seviye parametrelerini oluştur
-            _currentParameters = CalculateDifficulty();
-            
-            // Hedef pozisyonu hesapla
-            _currentParameters.TargetPosition = (_currentParameters.Length * _currentParameters.PieceCount) + 
-                                               (_currentParameters.Length / 2f);
-            
-            // Seviye değişikliği ve hazır sinyallerini gönder
-            _signalBus.Fire(new LevelNumberChangedSignal(_currentLevel));
-            _signalBus.Fire(new LevelReadySignal(_currentParameters));
-        }
-        
+
+
+
         public LevelParameters GetCurrentParameters()
         {
             return _currentParameters;
         }
-        
+
         private LevelParameters CalculateDifficulty()
         {
             // Seviye zorluğunu hesapla
             float t = (float)_currentLevel / _maxLevel;
-            
+
             // Parça sayısı ve hızı eğrilere göre belirle
             int pieceCount = Mathf.CeilToInt(Mathf.Lerp(_pieceCountMin, _pieceCountMax, _pieceCountCurve.Evaluate(t)));
             float speed = Mathf.Lerp(_speedMin, _speedMax, _speedCurve.Evaluate(t));
-            
+
             // Seviye parametrelerini oluştur
             return new LevelParameters
             {
@@ -143,22 +133,21 @@ namespace Abdurrahman.Project_2.Core.Managers
                 TargetPosition = 0 // Daha sonra hesaplanacak
             };
         }
-        
+
         private void OnGameFail()
         {
             // Oyun başarısız olduğunda herhangi bir işlem yok
         }
-        
+
         // Oyunu tamamen sıfırlamak için (dışarıdan çağrılabilir)
         public void ResetGameCompletely()
         {
             _currentLevel = 1;
             PlayerPrefs.SetInt("Level", _currentLevel);
             PlayerPrefs.Save();
-            
-            Debug.Log("LevelManager - Oyun tamamen sıfırlandı, seviye: " + _currentLevel);
-            
-            LoadLevel();
+
+
+            // LoadLevel();
         }
     }
 }

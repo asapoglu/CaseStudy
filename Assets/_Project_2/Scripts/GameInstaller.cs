@@ -38,14 +38,15 @@ namespace Abdurrahman.Project_2.Core.Installers
             Container.DeclareSignal<GameStartSignal>();
             Container.DeclareSignal<GameFailSignal>();
             Container.DeclareSignal<GameSuccessSignal>();
-            Container.DeclareSignal<ContinueSignal>();
-            Container.DeclareSignal<ReplaySignal>();
+            Container.DeclareSignal<NextLevelSignal>();
+            Container.DeclareSignal<RestartLevelSignal>();
             
             // Platform sinyalleri
             Container.DeclareSignal<PiecePlacedSignal>();
             Container.DeclareSignal<PathChangedSignal>();
             
             // Seviye sinyalleri
+            Container.DeclareSignal<LoadLevelSignal>();
             Container.DeclareSignal<LevelReadySignal>();
             Container.DeclareSignal<LevelNumberChangedSignal>();
         }
@@ -66,25 +67,4 @@ namespace Abdurrahman.Project_2.Core.Installers
         }
     }
     
-    // Sinyaller için yükleyici
-    public class SignalsInstaller : Installer<SignalsInstaller>
-    {
-        public override void InstallBindings()
-        {
-            // Oyun durumu sinyalleri
-            Container.DeclareSignal<GameStartSignal>();
-            Container.DeclareSignal<GameFailSignal>();
-            Container.DeclareSignal<GameSuccessSignal>();
-            Container.DeclareSignal<ContinueSignal>();
-            Container.DeclareSignal<ReplaySignal>();
-            
-            // Platform sinyalleri
-            Container.DeclareSignal<PiecePlacedSignal>();
-            Container.DeclareSignal<PathChangedSignal>();
-            
-            // Seviye sinyalleri
-            Container.DeclareSignal<LevelReadySignal>();
-            Container.DeclareSignal<LevelNumberChangedSignal>();
-        }
-    }
 }

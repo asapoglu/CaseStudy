@@ -14,5 +14,6 @@ namespace Abdurrahman.Project_2.Core.Models
         public float Speed;
         public int PieceCount;
         public float TargetPosition;
+        public bool KeepCompletedPlatforms;
     }
 }

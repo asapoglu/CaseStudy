@@ -59,7 +59,7 @@ namespace Abdurrahman.Project_2.Core.Managers
             _signalBus.Subscribe<GameStartSignal>(OnGameStart);
             _signalBus.Subscribe<LevelReadySignal>(OnLevelReady);
             _signalBus.Subscribe<PathChangedSignal>(OnPathChange);
-            _signalBus.Subscribe<ReplaySignal>(OnGameReplay);
+            _signalBus.Subscribe<RestartLevelSignal>(OnGameReplay);
         }
 
         private void OnDestroy()
@@ -68,12 +68,11 @@ namespace Abdurrahman.Project_2.Core.Managers
             _signalBus.TryUnsubscribe<GameStartSignal>(OnGameStart);
             _signalBus.TryUnsubscribe<LevelReadySignal>(OnLevelReady);
             _signalBus.TryUnsubscribe<PathChangedSignal>(OnPathChange);
-            _signalBus.TryUnsubscribe<ReplaySignal>(OnGameReplay);
+            _signalBus.TryUnsubscribe<RestartLevelSignal>(OnGameReplay);
         }
 
         public void ResetPlayerPosition()
         {
-            Debug.Log("PlayerController - Oyuncu pozisyonu sıfırlanıyor");
 
             // Tüm Tween işlemlerini durdur
             _playerTransform.DOKill();
@@ -102,7 +101,6 @@ namespace Abdurrahman.Project_2.Core.Managers
 
         private void OnLevelReady(LevelReadySignal signal)
         {
-            Debug.Log("PlayerController - Seviye hazır sinyali alındı");
 
             // Seviye parametrelerini kaydet
             _parameters = signal.Parameters;
@@ -121,7 +119,6 @@ namespace Abdurrahman.Project_2.Core.Managers
 
         private void OnGameReplay()
         {
-            Debug.Log("PlayerController - Oyun yeniden başlatılıyor");
 
             // Oyun yeniden başladığında oyuncuyu sıfırla
             ResetPlayerPosition();
@@ -174,11 +171,9 @@ namespace Abdurrahman.Project_2.Core.Managers
             // Eğer zaten koşmuyorsa işlem yapma
             if (!_isRunning)
             {
-                Debug.Log("FailJump çağrıldı fakat oyuncu zaten koşmuyor");
                 return;
             }
 
-            Debug.Log("FailJump başlatıldı");
 
             // Tüm coroutine'leri durdur ve koşmayı devre dışı bırak
             StopAllCoroutines();

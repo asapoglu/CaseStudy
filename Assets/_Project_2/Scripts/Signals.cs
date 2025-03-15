@@ -5,17 +5,18 @@ namespace Abdurrahman.Project_2.Core.Signals
     using UnityEngine;
 
     // Oyun durumu sinyalleri
-    public class GameStartSignal {}
-    public class GameFailSignal {}
-    public class GameSuccessSignal {}
-    public class ContinueSignal {}
-    public class ReplaySignal {}
+    public class GameStartSignal { }
+    public class GameFailSignal { }
+    public class GameSuccessSignal { }
+
+    public class NextLevelSignal { }
+    public class RestartLevelSignal { }
 
     // Platform sinyalleri
     public class PiecePlacedSignal
     {
         public PlacementResult Result;
-        
+
         public PiecePlacedSignal(PlacementResult result)
         {
             Result = result;
@@ -25,7 +26,7 @@ namespace Abdurrahman.Project_2.Core.Signals
     public class PathChangedSignal
     {
         public float XPosition;
-        
+
         public PathChangedSignal(float xPosition)
         {
             XPosition = xPosition;
@@ -33,10 +34,18 @@ namespace Abdurrahman.Project_2.Core.Signals
     }
 
     // Seviye sinyalleri
+    public class LoadLevelSignal
+    {
+        public bool KeepPreviousPlatform;
+        public LoadLevelSignal(bool keepPreviousPlatform)
+        {
+            KeepPreviousPlatform = keepPreviousPlatform;
+        }
+    }
     public class LevelReadySignal
     {
         public LevelParameters Parameters;
-        
+
         public LevelReadySignal(LevelParameters parameters)
         {
             Parameters = parameters;
@@ -46,7 +55,7 @@ namespace Abdurrahman.Project_2.Core.Signals
     public class LevelNumberChangedSignal
     {
         public int LevelNumber;
-        
+
         public LevelNumberChangedSignal(int levelNumber)
         {
             LevelNumber = levelNumber;
