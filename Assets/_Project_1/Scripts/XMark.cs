@@ -1,8 +1,7 @@
 using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
-namespace Abdurrahman.Project_1
+namespace Abdurrahman.Project_1.Core
 {
     public class XMark : MonoBehaviour
     {

@@ -1,4 +1,3 @@
-// Oyuncu Kontrolcüsü - Düzeltilmiş
 namespace Abdurrahman.Project_2.Core.Managers
 {
     using Abdurrahman.Project_2.Core.Interfaces;
@@ -6,7 +5,7 @@ namespace Abdurrahman.Project_2.Core.Managers
     using Abdurrahman.Project_2.Core.Signals;
     using UnityEngine;
     using Zenject;
-    using System.Collections;
+    using Cysharp.Threading.Tasks;
     using DG.Tweening;
 
     public class PlayerController : MonoBehaviour, IPlayerController
@@ -14,20 +13,17 @@ namespace Abdurrahman.Project_2.Core.Managers
         [Inject] private SignalBus _signalBus;
         [Inject] private IGameStateManager _gameStateManager;
 
-
         [Header("Oyuncu Ayarları")]
-        [SerializeField] private float _movementDuration = 0.5f; // Yanal hareket süresi
-        [SerializeField] private float _fallLag = 0.5f; // Havada kalma süresi
+        [SerializeField] private float _movementDuration = 0.5f;
+        [SerializeField] private float _fallLag = 0.5f;
 
-        private Transform _playerTransform; // Ana oyuncu transform'u
+        private Transform _playerTransform;
         private Animator _animator;
         private LevelParameters _parameters;
         private float _playerSpeed;
-        private WaitForSeconds _waitForGroundCheckInterval;
         private bool _isRunning;
         private Rigidbody _rigidbody;
 
-        // Animation parameter hash değerleri
         private readonly int _runTrigger = Animator.StringToHash("Run");
         private readonly int _danceTrigger = Animator.StringToHash("Dance");
         private readonly int _failTrigger = Animator.StringToHash("Fail");
@@ -39,23 +35,12 @@ namespace Abdurrahman.Project_2.Core.Managers
         {
             _playerTransform = transform;
             _animator = GetComponentInChildren<Animator>();
-            // Rigidbody bileşenini al (ana karakter nesnesinde olmalı)
             _rigidbody = _playerTransform.GetComponent<Rigidbody>();
-            if (_rigidbody == null)
-            {
-                _rigidbody = _playerTransform.gameObject.AddComponent<Rigidbody>();
-                _rigidbody.isKinematic = true;
-                _rigidbody.useGravity = false;
-            }
-
-            // Yer kontrolü için bekleme süresini oluştur
-            _waitForGroundCheckInterval = new WaitForSeconds(.1f);
         }
 
         [Inject]
         private void Initialize()
         {
-            // Mevcut sinyaller
             _signalBus.Subscribe<GameStartSignal>(OnGameStart);
             _signalBus.Subscribe<LevelReadySignal>(OnLevelReady);
             _signalBus.Subscribe<PathChangedSignal>(OnPathChange);
@@ -64,7 +49,6 @@ namespace Abdurrahman.Project_2.Core.Managers
 
         private void OnDestroy()
         {
-            // Mevcut sinyal aboneliklerinin çıkışı
             _signalBus.TryUnsubscribe<GameStartSignal>(OnGameStart);
             _signalBus.TryUnsubscribe<LevelReadySignal>(OnLevelReady);
             _signalBus.TryUnsubscribe<PathChangedSignal>(OnPathChange);
@@ -73,116 +57,70 @@ namespace Abdurrahman.Project_2.Core.Managers
 
         public void ResetPlayerPosition()
         {
-
-            // Tüm Tween işlemlerini durdur
             _playerTransform.DOKill();
-
-            // Oyuncuyu başlangıç pozisyonuna sıfırla
             _playerTransform.localPosition = Vector3.zero;
 
-            // Fiziği sıfırla
             if (_rigidbody != null)
             {
+                _rigidbody.drag = 0;
                 _rigidbody.velocity = Vector3.zero;
                 _rigidbody.angularVelocity = Vector3.zero;
                 _rigidbody.isKinematic = true;
                 _rigidbody.useGravity = false;
             }
 
-            // Animasyonları sıfırla
             SetPlayerAnimation("Idle");
-
-            // Koşma durumunu devre dışı bırak
             _isRunning = false;
-
-            // Tüm coroutine'leri durdur
-            StopAllCoroutines();
         }
 
-        private void OnLevelReady(LevelReadySignal signal)
+        public void OnLevelReady(LevelReadySignal signal)
         {
-
-            // Seviye parametrelerini kaydet
             _parameters = signal.Parameters;
-
-            // Oyuncuyu sıfırla
             ResetPlayerPosition();
         }
 
-
-        private void OnPathChange(PathChangedSignal signal)
+        public void OnPathChange(PathChangedSignal signal)
         {
-            // Karakteri platformun merkezine doğru hareket ettir
             _playerTransform.DOLocalMoveX(signal.XPosition, _movementDuration)
                 .SetEase(Ease.OutQuad);
         }
 
-        private void OnGameReplay()
-        {
-
-            // Oyun yeniden başladığında oyuncuyu sıfırla
-            ResetPlayerPosition();
-        }
-
-        private void OnNewLevelRequest()
-        {
-            // Yeni seviye talebi geldiğinde oyuncuyu sıfırla
-            ResetPlayerPosition();
-        }
+        private void OnGameReplay() => ResetPlayerPosition();
 
         private void OnGameStart()
         {
-            // Oyun başladığında kısa bir gecikmeyle hareketi başlat
             DOVirtual.DelayedCall(_parameters.Speed / 2f, StartMoving);
         }
 
-        private void StartMoving()
+        public void StartMoving()
         {
-            // Hedef pozisyonu ve hızı hesapla
             var finalPosition = _parameters.TargetPosition;
             var pieceSpeed = _parameters.Length / _parameters.Speed;
             _playerSpeed = finalPosition / pieceSpeed;
 
-            // Oyuncuyu hedefe doğru hareket ettir
             _playerTransform.DOLocalMoveZ(finalPosition, _playerSpeed)
-                .SetEase(Ease.Linear)
-                .OnComplete(MoveComplete);
+                .SetEase(Ease.Linear).AwaitForComplete().ContinueWith(MoveComplete).Forget();
 
-            // Koşma animasyonunu başlat
             SetPlayerAnimation("Run");
-
-            // Koşma durumunu etkinleştir ve yer kontrolü coroutine'ini başlat
             _isRunning = true;
-            StartCoroutine(GroundCheck());
+            GroundCheckAsync().Forget();
         }
 
-        private void MoveComplete()
+        private async UniTaskVoid MoveComplete()
         {
-            // Hareket tamamlandığında koşmayı durdur ve dans animasyonunu başlat
             _isRunning = false;
             SetPlayerAnimation("Dance");
-
-            // Oyunu başarılı olarak bitir
+            await UniTask.Delay(1500);
             _gameStateManager.EndGame(true);
         }
 
-        private void FailJump()
+        private async UniTaskVoid FailJump()
         {
-            // Eğer zaten koşmuyorsa işlem yapma
-            if (!_isRunning)
-            {
-                return;
-            }
+            if (!_isRunning) return;
 
-
-            // Tüm coroutine'leri durdur ve koşmayı devre dışı bırak
-            StopAllCoroutines();
             _isRunning = false;
-
-            // DOTween animasyonlarını durdur
             _playerTransform.DOKill();
 
-            // Fiziği etkinleştir ve başarısız animasyonunu başlat
             if (_rigidbody != null)
             {
                 _rigidbody.isKinematic = false;
@@ -190,43 +128,13 @@ namespace Abdurrahman.Project_2.Core.Managers
             }
 
             SetPlayerAnimation("Fail");
-
-            // Düşüş hızını yavaşlat ve başarısız sinyalini gönder
-            DOVirtual.Float(1, 7.5f, 1.5f, SlowDown)
-                .SetDelay(1)
-                .OnComplete(TriggerFailEvent);
-        }
-
-        private void SlowDown(float value)
-        {
-            // Düşüş hızını yavaşlat
-            _rigidbody.drag = value;
-        }
-
-        private void TriggerFailEvent()
-        {
-            // Oyunu başarısız olarak bitir
+            await UniTask.Delay(1500);
             _gameStateManager.EndGame(false);
-        }
-
-        public void MovePlayer(float targetPosition)
-        {
-            // Oyuncuyu belirli bir pozisyona hareket ettir
-            _playerTransform.DOLocalMoveZ(targetPosition, _playerSpeed)
-                .SetEase(Ease.Linear)
-                .OnComplete(MoveComplete);
-        }
-
-        public void StopPlayer()
-        {
-            // Oyuncuyu durdur
-            _playerTransform.DOKill();
-            _isRunning = false;
+            _rigidbody.drag = 10;
         }
 
         public void SetPlayerAnimation(string animationName)
         {
-            // İstenilen animasyonu başlat
             switch (animationName)
             {
                 case "Run":
@@ -249,28 +157,22 @@ namespace Abdurrahman.Project_2.Core.Managers
             }
         }
 
-        IEnumerator GroundCheck()
+        private async UniTaskVoid GroundCheckAsync()
         {
-            // Oyuncu koşarken sürekli olarak yer kontrolü yap
             while (_isRunning)
             {
-                // Karakterin doğru pozisyonundan ışın gönder
                 Vector3 raycastOrigin = _playerTransform.position + Vector3.up * _parameters.Height / 2f;
-                Debug.DrawRay(raycastOrigin, Vector3.down * _parameters.Height, Color.red); // Görsel hata ayıklama
-
-                // Zemin kontrolü
                 if (!Physics.Raycast(raycastOrigin, Vector3.down, _parameters.Height))
                 {
-                    // Zemin bulunamazsa düşüşü başlat
-                    yield return new WaitForSeconds(_fallLag);
+                    await UniTask.Delay((int)(_fallLag * 1000));
                     _playerTransform.DOKill();
-                    FailJump();
-                    yield break; // Coroutine'i sonlandır
+                    FailJump().Forget();
+                    return;
                 }
 
-                // Sonraki kontrole kadar bekle
-                yield return _waitForGroundCheckInterval;
+                await UniTask.Delay(100);
             }
         }
+
     }
 }

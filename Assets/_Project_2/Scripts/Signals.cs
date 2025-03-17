@@ -2,14 +2,12 @@
 namespace Abdurrahman.Project_2.Core.Signals
 {
     using Abdurrahman.Project_2.Core.Models;
-    using UnityEngine;
 
     // Oyun durumu sinyalleri
     public class GameStartSignal { }
     public class GameFailSignal { }
     public class GameSuccessSignal { }
 
-    public class NextLevelSignal { }
     public class RestartLevelSignal { }
 
     // Platform sinyalleri
@@ -36,19 +34,21 @@ namespace Abdurrahman.Project_2.Core.Signals
     // Seviye sinyalleri
     public class LoadLevelSignal
     {
-        public bool KeepPreviousPlatform;
-        public LoadLevelSignal(bool keepPreviousPlatform)
+        public bool IsNextLevel;
+        public LoadLevelSignal(bool isNextLevel)
         {
-            KeepPreviousPlatform = keepPreviousPlatform;
+            IsNextLevel = isNextLevel;
         }
     }
     public class LevelReadySignal
     {
         public LevelParameters Parameters;
+        public LevelParameters ExParameters;
 
-        public LevelReadySignal(LevelParameters parameters)
+        public LevelReadySignal(LevelParameters parameters, LevelParameters exParameters = null)
         {
             Parameters = parameters;
+            ExParameters = exParameters;
         }
     }
 

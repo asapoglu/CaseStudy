@@ -3,10 +3,10 @@ namespace Abdurrahman.Project_2.Core.Models
 {
     using System;
 
-    // Seviye parametrelerini içeren veri sınıfı
     [Serializable]
     public class LevelParameters
     {
+        public int Level;
         public float Width;
         public float Height;
         public float Length;
@@ -14,6 +14,6 @@ namespace Abdurrahman.Project_2.Core.Models
         public float Speed;
         public int PieceCount;
         public float TargetPosition;
-        public bool KeepCompletedPlatforms;
+        public bool IsNextLevel;
     }
 }
