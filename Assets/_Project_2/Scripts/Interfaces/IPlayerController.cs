@@ -4,7 +4,6 @@ namespace Abdurrahman.Project_2.Core.Interfaces
     using Abdurrahman.Project_2.Core.Signals;
     using UnityEngine;
 
-    // Oyuncu kontrol arayüzü
     public interface IPlayerController
     {
         void ResetPlayerPosition();

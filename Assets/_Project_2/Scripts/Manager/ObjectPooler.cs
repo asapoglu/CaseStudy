@@ -20,6 +20,7 @@ namespace Abdurrahman.Project_2.Core
 }
 namespace Abdurrahman.Project_2.Core
 {
+    [DefaultExecutionOrder(-100)]
     public class ObjectPooler : MonoBehaviour
     {
         public List<ObjectPoolItem> itemsToPool;

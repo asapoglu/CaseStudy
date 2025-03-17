@@ -41,7 +41,6 @@ namespace Abdurrahman.Project_2.Core.Managers
 
         private void Awake()
         {
-            // Bitiş çizgisi uzunluğunu hesapla
             var tempFinishLine = _objectPooler.GetPooledObject(1);
             if (tempFinishLine.TryGetComponent<MeshRenderer>(out var renderer))
             {
@@ -52,7 +51,6 @@ namespace Abdurrahman.Project_2.Core.Managers
         [Inject]
         private void Initialize()
         {
-            // Sinyallere abone ol
             _signalBus.Subscribe<LevelReadySignal>(OnLevelReady);
             _signalBus.Subscribe<GameStartSignal>(OnGameStart);
             _signalBus.Subscribe<RestartLevelSignal>(OnGameReplay);
@@ -61,7 +59,6 @@ namespace Abdurrahman.Project_2.Core.Managers
 
         private void OnDestroy()
         {
-            // Sinyallerden çık
             _signalBus.TryUnsubscribe<LevelReadySignal>(OnLevelReady);
             _signalBus.TryUnsubscribe<GameStartSignal>(OnGameStart);
             _signalBus.TryUnsubscribe<RestartLevelSignal>(OnGameReplay);
@@ -70,7 +67,6 @@ namespace Abdurrahman.Project_2.Core.Managers
 
         private void Update()
         {
-            // Girdi kontrolü
             if (!_inputEnabled) return;
 
             if (_inputManager.IsInputReceived())
@@ -164,14 +160,12 @@ namespace Abdurrahman.Project_2.Core.Managers
             {
                 var child = _stackParent.GetChild(i);
 
-                // Eğer platform offset'ten sonra oluşturulduysa (mevcut seviyeye aitse)
-                if (child.localPosition.z >= _completedPlatformsOffset - 0.1f) // Küçük bir tolerans ekle
+                if (child.localPosition.z >= _completedPlatformsOffset - 0.1f)
                 {
                     platformsToRemove.Add(child);
                 }
             }
 
-            // Bulunan platformları poola geri koy
             foreach (var platform in platformsToRemove)
             {
                 platform.gameObject.SetActive(false);
@@ -183,7 +177,6 @@ namespace Abdurrahman.Project_2.Core.Managers
 
         private void OnGameFail()
         {
-            // Oyun başarısız olduğunda girdiyi devre dışı bırak ve platformu durdur
             _inputEnabled = false;
             _currentPiece.DOKill();
         }
@@ -367,12 +360,10 @@ namespace Abdurrahman.Project_2.Core.Managers
                 body.AddForce(Vector3.right * cutDirection * _parameters.Length, ForceMode.Impulse);
             }
 
-            // Delayed method to return the falling piece to the pool
             DOVirtual.DelayedCall(_cutPieceDestroyDelay, () => {
                 cutPieceObj.transform.position = Vector3.zero;
                 cutPieceObj.transform.SetParent(_objectPooler.spawnTransform);
                 cutPieceObj.SetActive(false);
-                // Reset rigidbody settings when returning to pool
                 if (cutPiece.TryGetComponent<Rigidbody>(out Rigidbody rb))
                 {
                     rb.useGravity = false;

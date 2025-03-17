@@ -1,4 +1,3 @@
-// Oyun Durum Yöneticisi
 namespace Abdurrahman.Project_2.Core.Managers
 {
     using Abdurrahman.Project_2.Core.Interfaces;
@@ -20,11 +19,7 @@ namespace Abdurrahman.Project_2.Core.Managers
             Failed       // Oyun başarısız oldu
         }
 
-        // Mevcut oyun durumu
         private GameState _currentState = GameState.NotStarted;
-
-        // Oyun durumunu dış dünyaya açmak için property
-        public GameState CurrentState => _currentState;
 
         void Start()
         {
@@ -33,14 +28,12 @@ namespace Abdurrahman.Project_2.Core.Managers
 
         private void OnDestroy()
         {
-            // Tüm DOTween işlemlerini temizle
             DOTween.Kill(this);
         }
 
         // Oyunu başlat
         public void StartGame()
         {
-            // Eğer oyun zaten başladıysa işlem yapma
             if (_currentState == GameState.Playing)
             {
                 return;

@@ -1,9 +1,6 @@
-// Girdi Yöneticisi
 namespace Abdurrahman.Project_2.Core.Managers
 {
-    using Abdurrahman.Project_2.Core.Interfaces;
     using UnityEngine;
-    using Zenject;
     
     public class InputManager : MonoBehaviour
     {

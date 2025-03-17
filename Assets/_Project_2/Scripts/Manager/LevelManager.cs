@@ -1,5 +1,3 @@
-
-
 namespace Abdurrahman.Project_2.Core.Managers
 {
     using Abdurrahman.Project_2.Core.Models;
@@ -73,17 +71,13 @@ namespace Abdurrahman.Project_2.Core.Managers
 
         private LevelParameters CalculateDifficulty()
         {
-            // Seviye zorluğunu hesapla
             float t = (float)_currentLevel / _maxLevel;
 
             float pieceCountT = DOVirtual.EasedValue(0, 1, t, _pieceCountEase);
-            Debug.Log("Piece Count T: " + pieceCountT);
             int pieceCount = Mathf.CeilToInt(Mathf.Lerp(_pieceCountMin, _pieceCountMax, pieceCountT));
             float speedT = DOVirtual.EasedValue(0, 1, t, _speedEase);
-            Debug.Log("Speed T: " + speedT);
             float speed = Mathf.Lerp(_speedMin, _speedMax, speedT);
 
-            // Seviye parametrelerini oluştur
             return new LevelParameters
             {
                 Width = _pieceWidth,

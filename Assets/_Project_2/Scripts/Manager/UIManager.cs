@@ -6,7 +6,6 @@ namespace Abdurrahman.Project_2.Core.Managers
     using UnityEngine;
     using Zenject;
     using TMPro;
-    using System;
 
     public class UIManager : MonoBehaviour
     {
@@ -30,7 +29,6 @@ namespace Abdurrahman.Project_2.Core.Managers
         [Inject]
         private void Initialize()
         {
-            // Sinyallere abone ol
             _signalBus.Subscribe<LevelReadySignal>(OnLevelGenerated);
             _signalBus.Subscribe<GameFailSignal>(OnFail);
             _signalBus.Subscribe<GameSuccessSignal>(OnSuccess);
@@ -42,7 +40,6 @@ namespace Abdurrahman.Project_2.Core.Managers
 
         private void OnDestroy()
         {
-            // Sinyallerden çık
             _signalBus.TryUnsubscribe<LevelReadySignal>(OnLevelGenerated);
             _signalBus.TryUnsubscribe<GameFailSignal>(OnFail);
             _signalBus.TryUnsubscribe<GameSuccessSignal>(OnSuccess);

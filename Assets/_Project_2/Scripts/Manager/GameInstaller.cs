@@ -1,4 +1,3 @@
-// Zenject Yükleme Sınıfları
 namespace Abdurrahman.Project_2.Core.Installers
 {
     using Abdurrahman.Project_2.Core.Interfaces;
@@ -10,7 +9,6 @@ namespace Abdurrahman.Project_2.Core.Installers
     // Ana oyun yükleyicisi
     public class GameInstaller : MonoInstaller
     {
-        // Yönetici referansları
         [SerializeField] private GameStateManager _gameStateManager;
         [SerializeField] private LevelManager _levelManager;
         [SerializeField] private PlatformManager _platformManager;
@@ -54,16 +52,15 @@ namespace Abdurrahman.Project_2.Core.Installers
 
         private void BindManagers()
         {
-            // Arayüzleri somut tiplerle bağla
             Container.Bind<IGameStateManager>().To<GameStateManager>().FromInstance(_gameStateManager).AsSingle();
             Container.Bind<LevelManager>().To<LevelManager>().FromInstance(_levelManager).AsSingle();
             Container.Bind<PlatformManager>().To<PlatformManager>().FromInstance(_platformManager).AsSingle();
+            Container.Bind<ObjectPooler>().FromInstance(_objectPooler).AsSingle();
+            Container.Bind<UIManager>().FromInstance(_uiManager).AsSingle();
+            Container.Bind<InputManager>().To<InputManager>().FromInstance(_inputManager).AsSingle();
             Container.Bind<IPlayerController>().To<PlayerController>().FromInstance(_playerController).AsSingle();
             Container.Bind<CameraManager>().To<CameraManager>().FromInstance(_cameraManager).AsSingle();
             Container.Bind<AudioManager>().To<AudioManager>().FromInstance(_audioManager).AsSingle();
-            Container.Bind<InputManager>().To<InputManager>().FromInstance(_inputManager).AsSingle();
-            Container.Bind<UIManager>().FromInstance(_uiManager).AsSingle();
-            Container.Bind<ObjectPooler>().FromInstance(_objectPooler).AsSingle();
         }
     }
 

@@ -1,7 +1,5 @@
-// Ses Yöneticisi
 namespace Abdurrahman.Project_2.Core.Managers
 {
-    using Abdurrahman.Project_2.Core.Interfaces;
     using Abdurrahman.Project_2.Core.Models;
     using Abdurrahman.Project_2.Core.Signals;
     using UnityEngine;
@@ -43,7 +41,6 @@ namespace Abdurrahman.Project_2.Core.Managers
 
         private void OnDestroy()
         {
-            // Sinyal(ler)den çık
             _signalBus.TryUnsubscribe<PiecePlacedSignal>(OnPiecePlaced);
             _signalBus.TryUnsubscribe<LevelReadySignal>(ResetPitch);
         }
@@ -57,25 +54,20 @@ namespace Abdurrahman.Project_2.Core.Managers
         {
             if (result == PlacementResult.Perfect)
             {
-                // Mükemmel yerleştirme için perde değerini artır
                 _currentStep = Mathf.Clamp(++_currentStep, 0, _pitchStep);
 
-                // Perde değerini ve ses seviyesini hesapla
                 float ratio = (float)_currentStep / _pitchStep;
                 float pitch = Mathf.Lerp(_minimumPitch, _maximumPitch, ratio);
                 float volumeScale = 0.5f + ratio / 2;
 
-                // Ses ayarlarını uygula
                 _audioSource.panStereo = 0;
                 _audioSource.pitch = pitch;
                 _audioSource.PlayOneShot(_placementSound, volumeScale);
             }
             else
             {
-                // Kesme sesi için stereo pan değerini ayarla (sağ veya sol)
                 float panStereo = result == PlacementResult.RightCut ? 0.5f : -0.5f;
 
-                // Ses ayarlarını uygula
                 _audioSource.panStereo = panStereo;
                 _audioSource.PlayOneShot(_cutSound);
                 ResetPitch();

@@ -1,7 +1,5 @@
-// Kamera Kontrolcüsü
 namespace Abdurrahman.Project_2.Core.Managers
 {
-    using Abdurrahman.Project_2.Core.Interfaces;
     using Abdurrahman.Project_2.Core.Signals;
     using UnityEngine;
     using Zenject;
